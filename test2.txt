@@ -19,5 +19,5 @@ feature 2 branch
 feature 3 branch
 
 
-f3 bug fix
+f3 bug fixes
 
