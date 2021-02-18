@@ -1,0 +1,75 @@
+---
+- hosts: webservers
+  become: yes
+  tasks:
+  - name: Update and upgrade apt packages
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 86400 #One day
+  - name: "Install Java"
+    apt:
+      name: openjdk-8-jdk
+      state: present
+  - name: "Install Tomcat8"
+    apt:
+      name: tomcat8
+      state: present
+  - name: "Install Tomcat8-docs"
+    apt:
+      name: tomcat8-docs
+      state: present
+  - name: "Install Tomcat8-examples"
+    apt:
+      name: tomcat8-examples
+      state: present
+  - name: "Install Tomcat8-admin"
+    apt:
+      name: tomcat8-admin
+      state: present
+  - name: edit tomcat-users.xml
+    blockinfile:
+        path: /etc/tomcat8/tomcat-users.xml
+        insertbefore: "</tomcat-users>"
+        block: |
+          <role rolename = "admin" />
+          <role rolename = "admin-gui" />
+          <role rolename = "manager" />
+          <role rolename = "manager-gui" />
+          <role rolename = "manager-script" />
+          <role rolename = "manager-jmx" />
+          <role rolename = "manager-status" />
+          <user username = "tomcat" password = "tomcat" roles="admin, manager,admin-script,manager-script,manager-jmx,manager-status,manager-gui,admin-gui" />
+  - name: "Restart tomcat8"
+    shell: "sudo systemctl restart tomcat8"
+- hosts: node1
+  become: yes
+  tasks:
+  - name: Update and upgrade apt packages
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 86400 #One day
+  - name: "Install Java"
+    apt:
+      name: openjdk-8-jdk
+      state: present
+  - name: "Install Jenkins on Node1"
+    apt_key: url=https://pkg.jenkins.io/debian-stable/jenkins.io.key state=present
+  - name: ensure the repository is configured
+    apt_repository: repo='deb https://pkg.jenkins.io/debian-stable binary/' state=present
+  - name: "Check Jenkins is installed"
+    apt: name=jenkins update_cache=yes
+    become: yes
+  - name: "Start the Jenkins service"
+    service: name=jenkins state=started
+  - name: "Pause for 10 seconds"
+    pause:
+      seconds: 10
+  - name: "Get Jenkins initial Admin Password"
+    shell: "cat /var/lib/jenkins/secrets/initialAdminPassword"
+    changed_when: false
+    register: result
+  - name: "Echo the password"
+    debug:
+     var: result.stdout
